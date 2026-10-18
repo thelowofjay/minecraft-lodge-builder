@@ -249,10 +249,12 @@ const stairHole = [[28,10],[29,10],[30,10],[28,11],[29,11],[30,11]];
 for(let y=-2;y<=-1;y++){
   const l=layer(`B${y}`,`Basement shell · course ${y+3}`,"STAGE 1 · BASEMENT","Raise the retaining wall and its timber supports.",["Use mostly cobblestone with occasional stone brick and andesite.","Leave the center open for storage and machinery."]);
   border(l,4,4,32,14,"cobble"); [[8,4],[13,4],[18,4],[23,4],[28,4],[8,14],[13,14],[18,14],[23,14],[28,14]].forEach(p=>put(l,...p,"spruceLog")); layers.push(l);
+  put(l,y===-2?30:29,11,"stairs");
 }
 {
   const l=layer("0","Stepped foundation and porch","STAGE 1 · FOUNDATION","Cap the basement, build the entry step, and establish the ocean-side wrap porch.",["The main rectangular shell is X4–32 / Z4–14.","The ocean porch wraps X1–8.","The entry wing projects toward the camera at X22–32 / Z2–4."]);
   rect(l,4,4,32,14,"sprucePlank"); border(l,4,4,32,14,"stone"); erase(l,stairHole);
+  put(l,28,11,"stairs");
   rect(l,1,3,3,14,"sprucePlank"); rect(l,4,3,8,3,"sprucePlank");
   [[1,3],[1,14],[4,3],[4,14],[8,3]].forEach(p=>put(l,...p,"spruceLog"));
   lineX(l,22,32,3,"stone"); rect(l,25,1,29,2,"stoneStairs"); layers.push(l);
@@ -271,6 +273,7 @@ function shellCourse(y, windows=false){
     [6,7,10,11,15,16,20,21,25,26,29,30].forEach(x=>put(l,x,14,"glass"));
     [6,7,11,12].forEach(z=>put(l,32,z,"glass")); [5,6].forEach(z=>put(l,22,z,"glass"));
   }
+  put(l,31-y,11,"stairs");
   return l;
 }
 layers.push(shellCourse(1),shellCourse(2,true),shellCourse(3,true),shellCourse(4));
@@ -278,6 +281,7 @@ layers.push(shellCourse(1),shellCourse(2,true),shellCourse(3,true),shellCourse(4
 {
   const l=layer("5","Second floor and balcony","STAGE 3 · UPPER LODGE","Lay the beam deck, balcony, and cross-gable floor.",["Preserve the 3 × 2 stair opening.","The ocean balcony rests on the porch posts below.","Use spruce logs across every structural bay."]);
   rect(l,4,4,32,14,"sprucePlank"); supportXs.forEach(x=>lineZ(l,x,4,14,"spruceLog")); erase(l,stairHole);
+  put(l,26,11,"stairs");
   rect(l,1,3,8,6,"sprucePlank"); rect(l,22,2,32,8,"sprucePlank"); layers.push(l);
 }
 
@@ -289,6 +293,7 @@ for(let y=6;y<=9;y++){
   lineX(l,22,32,2,"oakPlank"); lineZ(l,22,2,8,"oakPlank"); lineZ(l,32,2,8,"oakPlank");
   [[22,2],[27,2],[32,2],[22,8],[27,8],[32,8]].forEach(p=>put(l,...p,"spruceLog"));
   if(y===7||y===8){[6,7,10,11,15,16,20,21].forEach(x=>put(l,x,4,"glass"));[6,7,10,11,15,16,20,21].forEach(x=>put(l,x,14,"glass"));[26,27,28].forEach(x=>put(l,x,2,"glass"));[8,9,10].forEach(z=>put(l,4,z,"glass"));}
+  put(l,36-y,12,"stairs");
   layers.push(l);
 }
 
@@ -296,6 +301,7 @@ for(let y=6;y<=9;y++){
   const l=layer("10","Wall plates, balcony rail, and roof base","STAGE 4 · ROOF BASE","Cap both structures and add the visible balcony railing.",["Main roof plate runs X4–32.","Cross-gable plate runs around X22–32 / Z2–8.","Fence the ocean balcony but leave its door opening clear."]);
   lineX(l,4,32,4,"spruceLog"); lineX(l,4,32,14,"spruceLog"); lineZ(l,4,4,14,"spruceLog"); lineZ(l,32,4,14,"spruceLog");
   border(l,22,2,32,8,"spruceLog"); lineX(l,1,8,3,"fence"); lineZ(l,1,3,6,"fence"); lineX(l,1,8,6,"fence"); erase(l,[[4,6],[5,6]]); layers.push(l);
+  put(l,26,12,"stairs");
 }
 
 const mainRoof=[{y:11,z:[3,15]},{y:12,z:[4,14]},{y:13,z:[5,13]},{y:14,z:[6,12]},{y:15,z:[7,11]},{y:16,z:[8,10]},{y:17,z:[9]}];
@@ -470,21 +476,34 @@ function initModel() {
       const y = layerY(l);
       l.cells.forEach((code, position) => {
         const [x,z] = position.split(",").map(Number);
-        const mesh = new THREE.Mesh(geometry, materials[code]);
         const displayY = l.id === "18" ? ({lantern:3.5,trapdoor:2.7,barrel:.65,flowerPot:1.2,leaves:.35,fence:1.25}[code] ?? 1) : (l.id === "10" && code === "fence" ? 6.15 : y);
-        mesh.position.set(x - 18, displayY - .02, z - 8);
-        if (code === "slab") { mesh.scale.y = .5; mesh.position.y -= .24; }
+        let object;
+        if (code === "stairs" || code === "stoneStairs") {
+          object = new THREE.Group();
+          const lower = new THREE.Mesh(geometry, materials[code]);
+          lower.scale.set(1,.48,1); lower.position.y=-.245; object.add(lower);
+          const upper = new THREE.Mesh(geometry, materials[code]);
+          upper.scale.set(1,.48,.5); upper.position.y=.245;
+          if (code === "stairs" && y >= 11) {
+            const roofStep=y-11;
+            const cross=z<=9 && (x===21+roofStep || x===33-roofStep);
+            if (cross) { upper.scale.set(.5,.48,1); upper.position.x=x<27?.245:-.245; }
+            else upper.position.z=z<9?.245:-.245;
+          } else if (code === "stoneStairs") upper.position.z=-.245;
+          else { upper.scale.set(.5,.48,1); upper.position.x=-.245; }
+          object.add(upper);
+        } else object = new THREE.Mesh(geometry, materials[code]);
+        object.position.set(x - 18, displayY - .02, z - 8);
+        if (code === "slab") { object.scale.y = .5; object.position.y -= .24; }
         if (code === "glass") {
           const onEndWall = x === 4 || x === 22 || x === 32;
-          mesh.scale.set(onEndWall ? .18 : .9, .88, onEndWall ? .9 : .18);
+          object.scale.set(onEndWall ? .18 : .9, .88, onEndWall ? .9 : .18);
         }
-        if (code === "fence") mesh.scale.set(.22,1.15,.22);
-        if (code === "trapdoor") mesh.scale.set(.92,.92,.14);
-        if (code === "flowerPot") mesh.scale.set(.42,.5,.42);
-        if (code === "lantern") mesh.scale.set(.42,.62,.42);
-        if (code === "stairs" && y >= 11) mesh.scale.set(1,.62,1);
-        if (code === "stoneStairs") mesh.scale.set(1,.55,1);
-        group.add(mesh);
+        if (code === "fence") object.scale.set(.22,1.15,.22);
+        if (code === "trapdoor") object.scale.set(.92,.92,.14);
+        if (code === "flowerPot") object.scale.set(.42,.5,.42);
+        if (code === "lantern") object.scale.set(.42,.62,.42);
+        group.add(object);
         count++;
       });
     });
