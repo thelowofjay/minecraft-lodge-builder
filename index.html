@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coastal Nordic Lodge — Layer Guide</title>
+  <style>
+:root {
+  color-scheme: dark;
+  --ink: #f8f3e6;
+  --muted: #b9b4a7;
+  --paper: #151713;
+  --panel: #20231d;
+  --panel-2: #292d25;
+  --line: #41483a;
+  --gold: #e2ad56;
+  --ocean: #68bdd0;
+  --cell: clamp(14px, 2.12vw, 34px);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(54, 91, 83, .34), transparent 32rem),
+    linear-gradient(145deg, #11130f, #191b16 60%, #11130f);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, select { font: inherit; }
+.app-shell { width: min(1440px, 100%); margin: auto; padding: 26px; }
+.hero { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 24px; }
+.eyebrow, .stage-label { color: var(--gold); font-weight: 800; letter-spacing: .16em; font-size: .76rem; }
+h1 { margin: 5px 0; font-family: Georgia, serif; font-size: clamp(2.1rem, 5vw, 4rem); line-height: .95; }
+.subtitle { color: var(--muted); max-width: 680px; }
+.compass { min-width: 190px; padding: 13px; border: 1px solid var(--line); background: rgba(32,35,29,.76); text-align: center; display: grid; gap: 4px; font-size: .72rem; letter-spacing: .1em; }
+.compass strong { color: #90bb7b; font-size: 1.4rem; }
+.toolbar { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: end; background: var(--panel); border: 1px solid var(--line); padding: 14px; border-radius: 12px 12px 0 0; }
+.layer-picker { display: grid; gap: 5px; }
+.layer-picker label { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; }
+button, select { border: 1px solid #59614f; color: var(--ink); background: #30352b; border-radius: 7px; padding: 10px 13px; }
+button:hover, select:hover { border-color: var(--gold); }
+button:disabled { opacity: .35; cursor: not-allowed; }
+select { width: 100%; }
+.content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; margin-top: 18px; }
+.blueprint-card, .panel { background: rgba(32,35,29,.93); border: 1px solid var(--line); border-radius: 10px; }
+.blueprint-card { padding: 18px; overflow: hidden; }
+.layer-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
+h2, h3 { margin-top: 0; }
+h2 { margin-bottom: 7px; font-size: 1.7rem; }
+h3 { color: #eee3c9; font-size: 1rem; }
+.instructions { color: var(--muted); min-height: 2.6em; }
+.ghost-button { font-size: .78rem; white-space: nowrap; }
+.ghost-button.active { border-color: #739966; color: #b8d9aa; }
+.plot-wrap { position: relative; width: fit-content; max-width: 100%; margin: 54px auto 48px; }
+.plot { display: grid; grid-template-columns: repeat(35, var(--cell)); grid-template-rows: repeat(15, var(--cell)); border: 3px solid #d9c18f; background: #56784a; box-shadow: 0 18px 40px #080907; touch-action: manipulation; }
+.cell { width: var(--cell); height: var(--cell); border-right: 1px solid rgba(255,255,255,.1); border-bottom: 1px solid rgba(0,0,0,.22); position: relative; cursor: crosshair; }
+.cell:hover, .cell.focused { outline: 2px solid #fff; outline-offset: -2px; z-index: 3; }
+.cell.ghost::after { content: ""; position: absolute; inset: 3px; border: 1px dashed rgba(255,255,255,.42); background: rgba(255,255,255,.08); }
+.cell.current::before { content: ""; position: absolute; inset: 0; background: var(--block-color); }
+.cell.current::after { content: ""; position: absolute; inset: 18%; border: 1px solid rgba(0,0,0,.22); }
+.cell[data-code="glass"]::after { background: linear-gradient(135deg, transparent 42%, rgba(255,255,255,.8) 44% 52%, transparent 54%); }
+.cell[data-code="door"]::after { inset: 12% 24%; border: 2px solid #2b170c; }
+.cell[data-code="stairs"]::after { inset: 12%; border: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.34) 0 2px, transparent 2px 5px); }
+.edge-label { position: absolute; color: var(--muted); font-weight: 800; letter-spacing: .12em; font-size: .67rem; }
+.north { top: -28px; left: 50%; transform: translateX(-50%); color: #a8cf92; }
+.south { bottom: -29px; left: 50%; transform: translateX(-50%); }
+.west { left: -63px; top: 50%; transform: rotate(-90deg) translateX(-50%); transform-origin: left top; color: var(--ocean); }
+.east { right: -64px; top: 50%; transform: rotate(90deg) translateX(50%); transform-origin: right top; color: var(--gold); }
+.cell-readout { border: 1px solid var(--line); background: #151713; padding: 10px 12px; color: #ddd4c3; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .83rem; }
+.sidebar { display: grid; gap: 14px; align-content: start; }
+.panel { padding: 16px; }
+.counts { display: grid; gap: 8px; }
+.count-row, .legend-row { display: grid; grid-template-columns: 16px 1fr auto; gap: 9px; align-items: center; font-size: .86rem; }
+.swatch { width: 14px; height: 14px; border: 1px solid rgba(255,255,255,.35); }
+.count-number { font-weight: 800; color: var(--gold); }
+.notes { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 9px; font-size: .9rem; }
+.legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.legend-row { grid-template-columns: 14px 1fr; font-size: .76rem; }
+details summary { cursor: pointer; font-weight: 800; }
+.total-counts { margin-top: 14px; max-height: 290px; overflow: auto; padding-right: 6px; }
+
+@media (max-width: 1000px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .sidebar { grid-template-columns: repeat(2, 1fr); }
+  :root { --cell: clamp(11px, 2.35vw, 25px); }
+}
+@media (max-width: 640px) {
+  .app-shell { padding: 12px; }
+  .hero { align-items: start; }
+  .compass { display: none; }
+  .toolbar { grid-template-columns: 1fr 1fr; }
+  .layer-picker { grid-column: 1 / -1; grid-row: 1; }
+  .sidebar { grid-template-columns: 1fr; }
+  .layer-heading { display: block; }
+  .ghost-button { margin-bottom: 8px; }
+  :root { --cell: calc((100vw - 70px) / 35); }
+  .edge-label { font-size: .55rem; }
+}
+
+</style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">BEDROCK · SURVIVAL · 29 × 11</p>
+        <h1>Coastal Nordic Lodge</h1>
+        <p class="subtitle">An exact, layer-by-layer building guide for Jake’s 35 × 15 coastal plot.</p>
+      </div>
+      <div class="compass" aria-label="Orientation">
+        <span>FOREST</span><strong>↑</strong><span>OCEAN ← · → PATH</span>
+      </div>
+    </header>
+
+    <section class="toolbar" aria-label="Layer controls">
+      <button id="prevLayer" class="nav-button" type="button">← Previous</button>
+      <div class="layer-picker">
+        <label for="layerSelect">Current layer</label>
+        <select id="layerSelect"></select>
+      </div>
+      <button id="nextLayer" class="nav-button" type="button">Next →</button>
+    </section>
+
+    <section class="content-grid">
+      <div class="blueprint-card">
+        <div class="layer-heading">
+          <div>
+            <p id="stageLabel" class="stage-label"></p>
+            <h2 id="layerTitle"></h2>
+          </div>
+          <button id="toggleGhost" class="ghost-button active" type="button">Previous layer: on</button>
+        </div>
+        <p id="layerInstructions" class="instructions"></p>
+
+        <div class="plot-wrap">
+          <div class="edge-label north">FOREST SIDE</div>
+          <div class="edge-label west">OCEAN END</div>
+          <div id="plot" class="plot" role="grid" aria-label="Top-down block plan"></div>
+          <div class="edge-label east">PATH / ENTRY</div>
+          <div class="edge-label south">FRONT / CAMERA SIDE</div>
+        </div>
+
+        <div id="cellReadout" class="cell-readout">Tap or hover over a block to inspect it.</div>
+      </div>
+
+      <aside class="sidebar">
+        <section class="panel">
+          <h3>This layer needs</h3>
+          <div id="layerCounts" class="counts"></div>
+        </section>
+        <section class="panel">
+          <h3>Build notes</h3>
+          <ol id="buildNotes" class="notes"></ol>
+        </section>
+        <section class="panel">
+          <details>
+            <summary>Total project estimate</summary>
+            <div id="totalCounts" class="counts total-counts"></div>
+          </details>
+        </section>
+        <section class="panel legend-panel">
+          <h3>Block legend</h3>
+          <div id="legend" class="legend"></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+  <script>
+const W = 35;
+const H = 15;
+const HOUSE = { x1: 4, x2: 32, z1: 4, z2: 14 };
+
+const blocks = {
+  cobble: { name: "Cobblestone", color: "#777b76" },
+  stone: { name: "Stone Bricks", color: "#9a9a91" },
+  andesite: { name: "Andesite", color: "#858985" },
+  sprucePlank: { name: "Spruce Planks", color: "#71502e" },
+  oakPlank: { name: "Oak Planks", color: "#b68b4d" },
+  spruceLog: { name: "Spruce Log", color: "#4a321e" },
+  strippedSpruce: { name: "Stripped Spruce Log", color: "#76573b" },
+  glass: { name: "Glass Pane", color: "#91d5d7" },
+  door: { name: "Spruce Door", color: "#8a5527" },
+  stairs: { name: "Spruce Stairs", color: "#593a22" },
+  slab: { name: "Spruce Slab", color: "#68462a" },
+  fence: { name: "Spruce Fence", color: "#4f331d" },
+  lantern: { name: "Lantern", color: "#f0ae3e" },
+  barrel: { name: "Barrel", color: "#8d6434" },
+  air: { name: "Leave Empty", color: "transparent" }
+};
+
+const key = (x, z) => `${x},${z}`;
+const layer = (id, title, stage, instructions, notes = []) => ({ id, title, stage, instructions, notes, cells: new Map() });
+const put = (l, x, z, code) => l.cells.set(key(x, z), code);
+const rect = (l, x1, z1, x2, z2, code) => {
+  for (let z = z1; z <= z2; z++) for (let x = x1; x <= x2; x++) put(l, x, z, code);
+};
+const border = (l, x1, z1, x2, z2, code) => {
+  for (let x = x1; x <= x2; x++) { put(l, x, z1, code); put(l, x, z2, code); }
+  for (let z = z1; z <= z2; z++) { put(l, x1, z, code); put(l, x2, z, code); }
+};
+const lineX = (l, x1, x2, z, code) => { for (let x = x1; x <= x2; x++) put(l, x, z, code); };
+const lineZ = (l, x, z1, z2, code) => { for (let z = z1; z <= z2; z++) put(l, x, z, code); };
+const erase = (l, coords) => coords.forEach(([x,z]) => l.cells.delete(key(x,z)));
+const supportXs = [4, 8, 12, 18, 24, 28, 32];
+
+const layers = [];
+
+{
+  const l = layer("B-4", "Basement floor", "STAGE 1 · EXCAVATION", "Dig the 27 × 9 interior four blocks below grade. Lay this floor at the bottom; the pale perimeter is the wall footprint above.", ["Keep the outer ground-level ring untouched while excavating.", "Place torches now. Future-you hates surprise zombies.", "The opening near the ocean/forest corner is reserved for a utility shaft."]);
+  rect(l, 5, 5, 31, 13, "sprucePlank");
+  [[8,5],[8,13],[13,5],[13,13],[18,5],[18,13],[23,5],[23,13],[28,5],[28,13]].forEach(([x,z]) => put(l,x,z,"stone"));
+  layers.push(l);
+}
+
+for (let depth = -3; depth <= -1; depth++) {
+  const l = layer(`B${depth}`, `Basement walls ${depth + 4}/3`, "STAGE 1 · BASEMENT SHELL", "Raise the mixed-stone retaining wall and spruce supports one block on this layer.", ["Randomize stone sparingly: about 70% cobble, 20% stone brick, 10% andesite.", "Keep the interior open for storage and machinery."]);
+  border(l, 4, 4, 32, 14, "cobble");
+  [[8,5],[8,13],[13,5],[13,13],[18,5],[18,13],[23,5],[23,13],[28,5],[28,13]].forEach(([x,z]) => put(l,x,z,"spruceLog"));
+  layers.push(l);
+}
+
+{
+  const l = layer("0", "Ground floor deck", "STAGE 1 · FOUNDATION CAP", "Cap the basement with spruce planks, preserve both openings, and add the compact ocean deck.", ["The 3 × 3 opening by the path end is the main stairwell.", "The 2 × 2 opening near the ocean/forest corner is the utility shaft.", "Do not fill either opening. Seriously."]);
+  rect(l, 4, 4, 32, 14, "sprucePlank");
+  border(l, 4, 4, 32, 14, "stone");
+  erase(l, [[28,7],[29,7],[30,7],[28,8],[29,8],[30,8],[28,9],[29,9],[30,9],[6,12],[7,12],[6,13],[7,13]]);
+  rect(l, 1, 6, 3, 12, "sprucePlank");
+  [[1,6],[1,12],[3,6],[3,12]].forEach(([x,z]) => put(l,x,z,"spruceLog"));
+  layers.push(l);
+}
+
+const wallLayer = (n, windowLayer = false) => {
+  const l = layer(`${n}`, `Ground-floor walls · course ${n}`, "STAGE 2 · GROUND FLOOR", windowLayer ? "Raise framing and place the blue glass openings exactly as shown." : "Raise the timber frame and oak infill one block.", ["Spruce logs are structural posts; oak planks are wall infill.", "The path-end entrance is centered at X32/Z9.", "Leave the ocean-end deck accessible through the centered opening."]);
+  supportXs.forEach(x => { put(l,x,4,"spruceLog"); put(l,x,14,"spruceLog"); });
+  lineZ(l,4,4,14,"spruceLog"); lineZ(l,32,4,14,"spruceLog");
+  for (let x=5;x<=31;x++) { if (!supportXs.includes(x)) { put(l,x,4,"oakPlank"); put(l,x,14,"oakPlank"); } }
+  for (let z=5;z<=13;z++) { put(l,4,z,"oakPlank"); put(l,32,z,"oakPlank"); }
+  if (windowLayer) {
+    [6,7,10,11,14,15,20,21,26,27,30,31].forEach(x => { put(l,x,4,"glass"); put(l,x,14,"glass"); });
+    [7,8,9,10,11].forEach(z => put(l,4,z,"glass"));
+    [8,9,10].forEach(z => put(l,32,z,"door"));
+  } else {
+    [8,9,10].forEach(z => put(l,32,z,"door"));
+    [8,9,10].forEach(z => l.cells.delete(key(4,z)));
+  }
+  return l;
+};
+layers.push(wallLayer(1, false), wallLayer(2, true), wallLayer(3, true), wallLayer(4, false));
+
+{
+  const l = layer("5", "Second-floor beams and deck", "STAGE 3 · SECOND FLOOR", "Run the crossbeams first, then fill the second floor. Preserve the stair landing.", ["Every beam runs front-to-forest across the 11-block width.", "The ocean balcony projects over the deck below.", "Use upside-down stairs later under the balcony rim for polish."]);
+  rect(l,4,4,32,14,"sprucePlank");
+  supportXs.forEach(x => lineZ(l,x,4,14,"spruceLog"));
+  erase(l, [[28,7],[29,7],[30,7],[28,8],[29,8],[30,8],[28,9],[29,9],[30,9]]);
+  rect(l,1,6,3,12,"sprucePlank");
+  layers.push(l);
+}
+
+for (let n=6;n<=9;n++) {
+  const windows = n === 7 || n === 8;
+  const l = layer(`${n}`, `Second-floor walls · course ${n-5}`, "STAGE 3 · SECOND FLOOR", windows ? "Continue the timber bays and place glass panes." : "Build this structural wall course.", ["Repeat the vertical posts directly above the ground-floor posts.", "The ocean balcony door occupies the center of the west gable.", "Keep window bays two blocks wide for a clean rhythm."]);
+  supportXs.forEach(x => { put(l,x,4,"spruceLog"); put(l,x,14,"spruceLog"); });
+  lineZ(l,4,4,14,"spruceLog"); lineZ(l,32,4,14,"spruceLog");
+  for (let x=5;x<=31;x++) if (!supportXs.includes(x)) { put(l,x,4,"oakPlank"); put(l,x,14,"oakPlank"); }
+  for (let z=5;z<=13;z++) { put(l,4,z,"oakPlank"); put(l,32,z,"oakPlank"); }
+  if (windows) {
+    [6,7,10,11,14,15,20,21,26,27,30,31].forEach(x => { put(l,x,4,"glass"); put(l,x,14,"glass"); });
+    [7,8,9,10,11].forEach(z => put(l,4,z,"glass"));
+  }
+  [8,9,10].forEach(z => put(l,4,z,"door"));
+  layers.push(l);
+}
+
+{
+  const l = layer("10", "Wall plate and attic floor", "STAGE 4 · ROOF BASE", "Cap both long walls with spruce logs and lay the attic floor between them.", ["This continuous top plate carries the roof.", "Leave a 2 × 3 hatch near the path end for attic access.", "Place temporary scaffolding outside, not through the windows."]);
+  rect(l,4,4,32,14,"sprucePlank");
+  lineX(l,4,32,4,"spruceLog"); lineX(l,4,32,14,"spruceLog");
+  erase(l, [[28,8],[29,8],[28,9],[29,9],[28,10],[29,10]]);
+  layers.push(l);
+}
+
+const roofRuns = [
+  { id:"11", zs:[3,15], title:"Roof eaves" },
+  { id:"12", zs:[4,14], title:"Roof slope 2" },
+  { id:"13", zs:[5,13], title:"Roof slope 3" },
+  { id:"14", zs:[6,12], title:"Roof slope 4" },
+  { id:"15", zs:[7,11], title:"Roof slope 5" },
+  { id:"16", zs:[8,10], title:"Roof slope 6" },
+  { id:"17", zs:[9], title:"Roof ridge" }
+];
+roofRuns.forEach((r,i) => {
+  const l = layer(r.id, r.title, "STAGE 4 · STEEP SPRUCE ROOF", i === 0 ? "Start one block beyond each long wall for the eaves." : i === roofRuns.length-1 ? "Finish with a slab ridge running the full length." : "Step inward and upward one block on both sides.", ["Run every marked row from X3 through X33 for a one-block gable overhang.", "Use full spruce stairs on slopes; use slabs only at the ridge.", "Face all stairs outward toward their nearest eave."]);
+  r.zs.forEach(z => lineX(l,3,33,z,i === roofRuns.length-1 ? "slab" : "stairs"));
+  if (i >= 1 && i <= 5) { put(l,27,8,"stone"); put(l,27,9,"stone"); }
+  layers.push(l);
+});
+
+const plot = document.querySelector("#plot");
+const select = document.querySelector("#layerSelect");
+const title = document.querySelector("#layerTitle");
+const stage = document.querySelector("#stageLabel");
+const instructions = document.querySelector("#layerInstructions");
+const layerCounts = document.querySelector("#layerCounts");
+const totalCounts = document.querySelector("#totalCounts");
+const notes = document.querySelector("#buildNotes");
+const legend = document.querySelector("#legend");
+const readout = document.querySelector("#cellReadout");
+const ghostButton = document.querySelector("#toggleGhost");
+let active = 0;
+let showGhost = true;
+
+layers.forEach((l,i) => select.add(new Option(`${l.id} — ${l.title}`, i)));
+
+for (let z=1; z<=H; z++) for (let x=1; x<=W; x++) {
+  const cell = document.createElement("div");
+  cell.className = "cell";
+  cell.dataset.x = x; cell.dataset.z = z;
+  cell.setAttribute("role", "gridcell");
+  const inspect = () => {
+    document.querySelector(".cell.focused")?.classList.remove("focused");
+    cell.classList.add("focused");
+    const code = layers[active].cells.get(key(x,z));
+    readout.textContent = `X${x} · Z${z} — ${code ? blocks[code].name : "No block on this layer"}`;
+  };
+  cell.addEventListener("mouseenter", inspect);
+  cell.addEventListener("click", inspect);
+  plot.appendChild(cell);
+}
+
+const countMap = l => {
+  const counts = {};
+  l.cells.forEach(code => counts[code] = (counts[code] || 0) + 1);
+  return counts;
+};
+const renderCounts = (node, counts) => {
+  node.innerHTML = "";
+  Object.entries(counts).sort((a,b) => b[1]-a[1]).forEach(([code,count]) => {
+    const row = document.createElement("div"); row.className = "count-row";
+    row.innerHTML = `<span class="swatch" style="background:${blocks[code].color}"></span><span>${blocks[code].name}</span><span class="count-number">${count}</span>`;
+    node.appendChild(row);
+  });
+};
+
+const totals = {};
+layers.forEach(l => l.cells.forEach(code => totals[code] = (totals[code] || 0) + 1));
+renderCounts(totalCounts, totals);
+Object.entries(blocks).filter(([code]) => code !== "air").forEach(([code,b]) => {
+  const row = document.createElement("div"); row.className = "legend-row";
+  row.innerHTML = `<span class="swatch" style="background:${b.color}"></span><span>${b.name}</span>`;
+  legend.appendChild(row);
+});
+
+function render() {
+  const l = layers[active];
+  select.value = active;
+  title.textContent = l.title;
+  stage.textContent = `${l.stage} · LAYER ${l.id}`;
+  instructions.textContent = l.instructions;
+  notes.innerHTML = l.notes.map(n => `<li>${n}</li>`).join("");
+  renderCounts(layerCounts, countMap(l));
+  document.querySelectorAll(".cell").forEach(cell => {
+    const k = key(+cell.dataset.x,+cell.dataset.z);
+    const code = l.cells.get(k);
+    const prior = active > 0 ? layers[active-1].cells.get(k) : null;
+    cell.className = "cell";
+    cell.removeAttribute("data-code");
+    cell.style.removeProperty("--block-color");
+    if (showGhost && prior && !code) cell.classList.add("ghost");
+    if (code) {
+      cell.classList.add("current");
+      cell.dataset.code = code;
+      cell.style.setProperty("--block-color", blocks[code].color);
+      cell.title = `X${cell.dataset.x}, Z${cell.dataset.z}: ${blocks[code].name}`;
+    } else cell.title = `X${cell.dataset.x}, Z${cell.dataset.z}: empty`;
+  });
+  document.querySelector("#prevLayer").disabled = active === 0;
+  document.querySelector("#nextLayer").disabled = active === layers.length-1;
+  readout.textContent = "Tap or hover over a block to inspect it.";
+}
+
+document.querySelector("#prevLayer").addEventListener("click", () => { if (active) { active--; render(); } });
+document.querySelector("#nextLayer").addEventListener("click", () => { if (active < layers.length-1) { active++; render(); } });
+select.addEventListener("change", e => { active = +e.target.value; render(); });
+ghostButton.addEventListener("click", () => {
+  showGhost = !showGhost;
+  ghostButton.classList.toggle("active", showGhost);
+  ghostButton.textContent = `Previous layer: ${showGhost ? "on" : "off"}`;
+  render();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft" && active) { active--; render(); }
+  if (e.key === "ArrowRight" && active < layers.length-1) { active++; render(); }
+});
+render();
+
+</script>
+</body>
+</html>
