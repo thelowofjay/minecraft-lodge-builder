@@ -62,7 +62,9 @@ h3 { color: #eee3c9; font-size: 1rem; }
 .cell.current::after { content: ""; position: absolute; inset: 18%; border: 1px solid rgba(0,0,0,.22); }
 .cell[data-code="glass"]::after { background: linear-gradient(135deg, transparent 42%, rgba(255,255,255,.8) 44% 52%, transparent 54%); }
 .cell[data-code="door"]::after { inset: 12% 24%; border: 2px solid #2b170c; }
-.cell[data-code="stairs"]::after { inset: 12%; border: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.34) 0 2px, transparent 2px 5px); }
+.cell[data-code="stairs"]::after, .cell[data-code="stoneStairs"]::after { content: attr(data-direction); inset: 6%; border: 0; background: rgba(0,0,0,.24); color: #fff7dc; display: grid; place-items: center; font-size: max(9px, calc(var(--cell) * .55)); font-weight: 900; line-height: 1; }
+.cell[data-code="air"]::before { background: repeating-linear-gradient(135deg, rgba(255,255,255,.14) 0 3px, transparent 3px 6px); }
+.cell[data-code="air"]::after { content: "OPEN"; inset: 8%; border: 1px dashed rgba(255,255,255,.7); color: #fff; display: grid; place-items: center; font-size: max(5px, calc(var(--cell) * .23)); font-weight: 900; overflow: hidden; }
 .edge-label { position: absolute; color: var(--muted); font-weight: 800; letter-spacing: .12em; font-size: .67rem; }
 .north { top: -28px; left: 50%; transform: translateX(-50%); color: #a8cf92; }
 .south { bottom: -29px; left: 50%; transform: translateX(-50%); }
@@ -88,11 +90,18 @@ details summary { cursor: pointer; font-weight: 800; }
 .model-viewport { width: 100%; height: min(68vh, 650px); min-height: 390px; overflow: hidden; border: 1px solid #59614f; border-radius: 8px; background: radial-gradient(circle at 50% 30%, #303b37, #111511 72%); touch-action: none; }
 .model-viewport canvas { display: block; width: 100%; height: 100%; }
 .model-status { margin: 9px 0 0; color: var(--muted); font-size: .8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+body.focus-3d .hero, body.focus-3d .toolbar, body.focus-3d .content-grid { display: none; }
+body.focus-3d .app-shell { width: 100%; padding: 10px; }
+body.focus-3d .model-card { margin: 0; }
+body.focus-3d .model-viewport { height: calc(100vh - 175px); min-height: 420px; }
 
 @media (max-width: 1000px) {
   .content-grid { grid-template-columns: 1fr; }
   .sidebar { grid-template-columns: repeat(2, 1fr); }
   :root { --cell: clamp(11px, 2.35vw, 25px); }
+}
+@media (min-width: 1001px) and (max-width: 1220px) {
+  :root { --cell: clamp(15px, 1.58vw, 20px); }
 }
 @media (max-width: 640px) {
   .app-shell { padding: 12px; }
@@ -240,7 +249,8 @@ const supportXs = [4, 8, 13, 18, 23, 28, 32];
 
 const layers = [];
 const posts = [[4,4],[4,14],[8,4],[8,14],[13,4],[13,14],[18,4],[18,14],[23,4],[23,14],[28,4],[28,14],[32,4],[32,14]];
-const stairHole = [[28,10],[29,10],[30,10],[28,11],[29,11],[30,11]];
+const basementOpening = [[29,11],[30,11]];
+const secondOpening = [[27,11],[28,11],[29,11],[30,11]];
 
 {
   const l=layer("B-3","Basement floor","STAGE 1 · EXCAVATION","Excavate the 27 × 9 interior three blocks below grade and lay this spruce floor.",["Keep the mixed-stone perimeter intact.","The path-end opening becomes the stairwell.","Light the room before enclosing it."]);
@@ -253,7 +263,8 @@ for(let y=-2;y<=-1;y++){
 }
 {
   const l=layer("0","Stepped foundation and porch","STAGE 1 · FOUNDATION","Cap the basement, build the entry step, and establish the ocean-side wrap porch.",["The main rectangular shell is X4–32 / Z4–14.","The ocean porch wraps X1–8.","The entry wing projects toward the camera at X22–32 / Z2–4."]);
-  rect(l,4,4,32,14,"sprucePlank"); border(l,4,4,32,14,"stone"); erase(l,stairHole);
+  rect(l,4,4,32,14,"sprucePlank"); border(l,4,4,32,14,"stone"); erase(l,basementOpening);
+  basementOpening.forEach(p=>put(l,...p,"air"));
   put(l,28,11,"stairs");
   rect(l,1,3,3,14,"sprucePlank"); rect(l,4,3,8,3,"sprucePlank");
   [[1,3],[1,14],[4,3],[4,14],[8,3]].forEach(p=>put(l,...p,"spruceLog"));
@@ -266,21 +277,32 @@ function shellCourse(y, windows=false){
   for(let x=5;x<=31;x++){if(!supportXs.includes(x)){put(l,x,4,"oakPlank");put(l,x,14,"oakPlank");}}
   for(let z=5;z<=13;z++){put(l,4,z,"oakPlank");put(l,32,z,"oakPlank");}
   lineX(l,22,32,3,"oakPlank"); lineZ(l,22,3,8,"oakPlank"); lineZ(l,32,3,8,"oakPlank");
-  [[22,3],[27,3],[32,3],[22,8],[27,8],[32,8]].forEach(p=>put(l,...p,"spruceLog"));
-  [26,27,28].forEach(x=>put(l,x,3,"door")); [8,9,10].forEach(z=>put(l,4,z,"door"));
+  [[22,3],[25,3],[29,3],[32,3],[22,8],[27,8],[32,8]].forEach(p=>put(l,...p,"spruceLog"));
+  [26,28].forEach(x=>put(l,x,3,"oakPlank"));
+  if(y<=2){put(l,27,3,"door"); [8,9].forEach(z=>put(l,4,z,"door"));}
+  else {put(l,27,3,"oakPlank"); [8,9].forEach(z=>put(l,4,z,"oakPlank"));}
   if(windows){
     [6,7,10,11,15,16,20,21].forEach(x=>put(l,x,4,"glass"));
-    [6,7,10,11,15,16,20,21,25,26,29,30].forEach(x=>put(l,x,14,"glass"));
+    [6,7,10,11,15,16,20,21,25,26,30,31].forEach(x=>put(l,x,14,"glass"));
     [6,7,11,12].forEach(z=>put(l,32,z,"glass")); [5,6].forEach(z=>put(l,22,z,"glass"));
   }
+  if(y===1){
+    [[1,3],[1,6],[4,3],[4,6],[8,3],[8,6]].forEach(p=>put(l,...p,"fence"));
+    [[6,3],[20,3],[30,1]].forEach(p=>put(l,...p,"barrel"));
+    [[7,3],[21,3],[29,1]].forEach(p=>put(l,...p,"flowerPot"));
+    [[2,14],[3,14],[33,12],[33,13]].forEach(p=>put(l,...p,"leaves"));
+  }
+  if(y===2||y===3){[[5,3],[8,3],[12,3],[14,3],[17,3],[19,3],[25,15],[29,15],[32,10]].forEach(p=>put(l,...p,"trapdoor"));}
+  if(y===4){[[2,3],[7,3],[21,3],[30,1],[3,13],[33,13]].forEach(p=>put(l,...p,"lantern"));}
   put(l,31-y,11,"stairs");
   return l;
 }
 layers.push(shellCourse(1),shellCourse(2,true),shellCourse(3,true),shellCourse(4));
 
 {
-  const l=layer("5","Second floor and balcony","STAGE 3 · UPPER LODGE","Lay the beam deck, balcony, and cross-gable floor.",["Preserve the 3 × 2 stair opening.","The ocean balcony rests on the porch posts below.","Use spruce logs across every structural bay."]);
-  rect(l,4,4,32,14,"sprucePlank"); supportXs.forEach(x=>lineZ(l,x,4,14,"spruceLog")); erase(l,stairHole);
+  const l=layer("5","Second floor and balcony","STAGE 3 · UPPER LODGE","Lay the beam deck, balcony, and cross-gable floor.",["Keep the four cells marked OPEN clear for stair headroom.","The ocean balcony rests on the porch posts below.","Use spruce logs across every structural bay."]);
+  rect(l,4,4,32,14,"sprucePlank"); supportXs.forEach(x=>lineZ(l,x,4,14,"spruceLog")); erase(l,secondOpening);
+  secondOpening.forEach(p=>put(l,...p,"air"));
   put(l,26,11,"stairs");
   rect(l,1,3,8,6,"sprucePlank"); rect(l,22,2,32,8,"sprucePlank"); layers.push(l);
 }
@@ -291,8 +313,8 @@ for(let y=6;y<=9;y++){
   for(let x=5;x<=31;x++){if(!supportXs.includes(x)){put(l,x,4,"oakPlank");put(l,x,14,"oakPlank");}}
   for(let z=5;z<=13;z++){put(l,4,z,"oakPlank");put(l,32,z,"oakPlank");}
   lineX(l,22,32,2,"oakPlank"); lineZ(l,22,2,8,"oakPlank"); lineZ(l,32,2,8,"oakPlank");
-  [[22,2],[27,2],[32,2],[22,8],[27,8],[32,8]].forEach(p=>put(l,...p,"spruceLog"));
-  if(y===7||y===8){[6,7,10,11,15,16,20,21].forEach(x=>put(l,x,4,"glass"));[6,7,10,11,15,16,20,21].forEach(x=>put(l,x,14,"glass"));[26,27,28].forEach(x=>put(l,x,2,"glass"));[8,9,10].forEach(z=>put(l,4,z,"glass"));}
+  [[22,2],[25,2],[29,2],[32,2],[22,8],[27,8],[32,8]].forEach(p=>put(l,...p,"spruceLog"));
+  if(y===7||y===8){[6,7,10,11,15,16,20,21].forEach(x=>put(l,x,4,"glass"));[6,7,10,11,15,16,20,21,25,26,30,31].forEach(x=>put(l,x,14,"glass"));[23,24,26,27,30,31].forEach(x=>put(l,x,2,"glass"));[8,9].forEach(z=>put(l,4,z,"glass"));}
   put(l,36-y,12,"stairs");
   layers.push(l);
 }
@@ -314,14 +336,6 @@ mainRoof.forEach((r,i)=>{
   layers.push(l);
 });
 
-{
-  const l=layer("18","Exterior details","STAGE 5 · FINISHING","Add porch posts, railings, brackets, lanterns, shutters, barrels, and planters.",["This layer represents attachments at several heights—use the notes and 3D preview.","Trapdoors sit beside windows as shutters.","Lanterns hang beneath roof corners and beside both doors."]);
-  [[1,3],[1,6],[4,3],[4,6],[8,3],[8,6]].forEach(p=>put(l,...p,"fence"));
-  [[2,3],[7,3],[23,3],[31,3],[4,13],[32,13]].forEach(p=>put(l,...p,"lantern"));
-  [[5,3],[8,4],[13,4],[18,4],[23,4],[31,4]].forEach(p=>put(l,...p,"trapdoor"));
-  [[6,3],[20,3],[30,3]].forEach(p=>put(l,...p,"barrel")); [[7,3],[21,3],[29,3]].forEach(p=>put(l,...p,"flowerPot"));
-  [[2,14],[3,14],[33,12],[33,13]].forEach(p=>put(l,...p,"leaves")); layers.push(l);
-}
 
 const plot = document.querySelector("#plot");
 const select = document.querySelector("#layerSelect");
@@ -334,7 +348,8 @@ const notes = document.querySelector("#buildNotes");
 const legend = document.querySelector("#legend");
 const readout = document.querySelector("#cellReadout");
 const ghostButton = document.querySelector("#toggleGhost");
-let active = 0;
+const requestedLayer = new URLSearchParams(location.search).get("layer");
+let active = Math.max(0, layers.findIndex(l => l.id === requestedLayer));
 let showGhost = true;
 let modelMode = new URLSearchParams(location.search).get("model") === "full" ? "full" : "current";
 
@@ -393,12 +408,23 @@ function render() {
     const prior = active > 0 ? layers[active-1].cells.get(k) : null;
     cell.className = "cell";
     cell.removeAttribute("data-code");
+    cell.removeAttribute("data-direction");
     cell.style.removeProperty("--block-color");
     if (showGhost && prior && !code) cell.classList.add("ghost");
     if (code) {
       cell.classList.add("current");
       cell.dataset.code = code;
       cell.style.setProperty("--block-color", blocks[code].color);
+      if (code === "stairs" || code === "stoneStairs") {
+        const y = Number.parseInt(l.id.replace("B", ""), 10);
+        let arrow = "←";
+        if (code === "stoneStairs") arrow = "↓";
+        else if (y >= 11) {
+          const step=y-11, cross=+cell.dataset.z<=9 && (+cell.dataset.x===21+step || +cell.dataset.x===33-step);
+          arrow = cross ? (+cell.dataset.x<27 ? "→" : "←") : (+cell.dataset.z<9 ? "↓" : "↑");
+        }
+        cell.dataset.direction = arrow;
+      }
       cell.title = `X${cell.dataset.x}, Z${cell.dataset.z}: ${blocks[code].name}`;
     } else cell.title = `X${cell.dataset.x}, Z${cell.dataset.z}: empty`;
   });
@@ -426,6 +452,7 @@ let rebuildModel;
 function initModel() {
   const viewport = document.querySelector("#modelViewport");
   const status = document.querySelector("#modelStatus");
+  if (new URLSearchParams(location.search).get("focus") === "3d") document.body.classList.add("focus-3d");
   if (!window.THREE) {
     status.textContent = "3D library failed to load. Check your connection and refresh.";
     return;
@@ -476,6 +503,7 @@ function initModel() {
       const y = layerY(l);
       l.cells.forEach((code, position) => {
         const [x,z] = position.split(",").map(Number);
+        if (code === "air") return;
         const displayY = l.id === "18" ? ({lantern:3.5,trapdoor:2.7,barrel:.65,flowerPot:1.2,leaves:.35,fence:1.25}[code] ?? 1) : (l.id === "10" && code === "fence" ? 6.15 : y);
         let object;
         if (code === "stairs" || code === "stoneStairs") {
