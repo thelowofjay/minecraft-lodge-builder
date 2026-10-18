@@ -80,6 +80,14 @@ h3 { color: #eee3c9; font-size: 1rem; }
 .legend-row { grid-template-columns: 14px 1fr; font-size: .76rem; }
 details summary { cursor: pointer; font-weight: 800; }
 .total-counts { margin-top: 14px; max-height: 290px; overflow: auto; padding-right: 6px; }
+.model-card { margin-top: 18px; padding: 18px; background: rgba(32,35,29,.93); border: 1px solid var(--line); border-radius: 10px; }
+.model-heading { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
+.model-controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: end; }
+.model-controls button { font-size: .82rem; }
+.model-controls button.active { border-color: var(--gold); color: #ffe0a4; background: #463a25; }
+.model-viewport { width: 100%; height: min(68vh, 650px); min-height: 390px; overflow: hidden; border: 1px solid #59614f; border-radius: 8px; background: radial-gradient(circle at 50% 30%, #303b37, #111511 72%); touch-action: none; }
+.model-viewport canvas { display: block; width: 100%; height: 100%; }
+.model-status { margin: 9px 0 0; color: var(--muted); font-size: .8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 @media (max-width: 1000px) {
   .content-grid { grid-template-columns: 1fr; }
@@ -94,12 +102,15 @@ details summary { cursor: pointer; font-weight: 800; }
   .layer-picker { grid-column: 1 / -1; grid-row: 1; }
   .sidebar { grid-template-columns: 1fr; }
   .layer-heading { display: block; }
+  .model-heading { display: block; }
+  .model-controls { justify-content: start; margin-bottom: 10px; }
+  .model-viewport { min-height: 330px; height: 52vh; }
   .ghost-button { margin-bottom: 8px; }
   :root { --cell: calc((100vw - 70px) / 35); }
   .edge-label { font-size: .55rem; }
 }
 
-</style>
+  </style>
 </head>
 <body>
   <main class="app-shell">
@@ -166,7 +177,25 @@ details summary { cursor: pointer; font-weight: 800; }
         </section>
       </aside>
     </section>
+
+    <section class="model-card" aria-labelledby="modelTitle">
+      <div class="model-heading">
+        <div>
+          <p class="stage-label">INTERACTIVE BUILD PREVIEW</p>
+          <h2 id="modelTitle">3D block model</h2>
+          <p class="instructions">Drag to rotate · pinch or scroll to zoom · use the layer selector above to cut the model open.</p>
+        </div>
+        <div class="model-controls">
+          <button id="modelCurrent" class="active" type="button">Through current layer</button>
+          <button id="modelFull" type="button">Full build</button>
+          <button id="modelReset" type="button">Reset view</button>
+        </div>
+      </div>
+      <div id="modelViewport" class="model-viewport" role="img" aria-label="Interactive three-dimensional model of the coastal Nordic lodge"></div>
+      <p id="modelStatus" class="model-status">Loading Three.js model…</p>
+    </section>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script>
 const W = 35;
 const H = 15;
@@ -310,6 +339,7 @@ const readout = document.querySelector("#cellReadout");
 const ghostButton = document.querySelector("#toggleGhost");
 let active = 0;
 let showGhost = true;
+let modelMode = "current";
 
 layers.forEach((l,i) => select.add(new Option(`${l.id} — ${l.title}`, i)));
 
@@ -378,6 +408,7 @@ function render() {
   document.querySelector("#prevLayer").disabled = active === 0;
   document.querySelector("#nextLayer").disabled = active === layers.length-1;
   readout.textContent = "Tap or hover over a block to inspect it.";
+  rebuildModel?.();
 }
 
 document.querySelector("#prevLayer").addEventListener("click", () => { if (active) { active--; render(); } });
@@ -393,8 +424,118 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowLeft" && active) { active--; render(); }
   if (e.key === "ArrowRight" && active < layers.length-1) { active++; render(); }
 });
-render();
 
-</script>
+let rebuildModel;
+function initModel() {
+  const viewport = document.querySelector("#modelViewport");
+  const status = document.querySelector("#modelStatus");
+  if (!window.THREE) {
+    status.textContent = "3D library failed to load. Check your connection and refresh.";
+    return;
+  }
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x111511, 42, 78);
+  const camera = new THREE.PerspectiveCamera(42, 1, .1, 160);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  viewport.appendChild(renderer.domElement);
+
+  scene.add(new THREE.HemisphereLight(0xd7eeff, 0x26331f, 2.2));
+  const sun = new THREE.DirectionalLight(0xffe5bd, 3.2);
+  sun.position.set(-18, 34, 24);
+  scene.add(sun);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(43, 23), new THREE.MeshStandardMaterial({ color: 0x4c7048, roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -4.52;
+  scene.add(ground);
+  const grid = new THREE.GridHelper(43, 43, 0xb89a62, 0x668060);
+  grid.position.y = -4.5;
+  scene.add(grid);
+
+  const group = new THREE.Group();
+  scene.add(group);
+  const geometry = new THREE.BoxGeometry(.94, .94, .94);
+  const materials = {};
+  Object.entries(blocks).forEach(([code, b]) => {
+    if (code === "air") return;
+    materials[code] = new THREE.MeshStandardMaterial({
+      color: b.color,
+      roughness: code === "glass" ? .18 : .82,
+      metalness: code === "lantern" ? .25 : 0,
+      transparent: code === "glass",
+      opacity: code === "glass" ? .48 : 1
+    });
+  });
+
+  const layerY = l => Number.parseInt(l.id.replace("B", ""), 10);
+  rebuildModel = () => {
+    while (group.children.length) group.remove(group.children[0]);
+    const max = modelMode === "full" ? layers.length - 1 : active;
+    let count = 0;
+    layers.slice(0, max + 1).forEach(l => {
+      const y = layerY(l);
+      l.cells.forEach((code, position) => {
+        const [x,z] = position.split(",").map(Number);
+        const mesh = new THREE.Mesh(geometry, materials[code]);
+        mesh.position.set(x - 18, y - .02, z - 8);
+        if (code === "slab") { mesh.scale.y = .5; mesh.position.y -= .24; }
+        if (code === "glass") mesh.scale.set(.25, .9, .9);
+        group.add(mesh);
+        count++;
+      });
+    });
+    status.textContent = `${count.toLocaleString()} blocks shown · ${modelMode === "full" ? "complete lodge" : `through layer ${layers[active].id}`}`;
+  };
+
+  let yaw = -.72, pitch = .62, distance = 48;
+  const target = new THREE.Vector3(0, 5, 0);
+  function positionCamera() {
+    const cp = Math.cos(pitch);
+    camera.position.set(target.x + distance * cp * Math.sin(yaw), target.y + distance * Math.sin(pitch), target.z + distance * cp * Math.cos(yaw));
+    camera.lookAt(target);
+  }
+  function resetView() { yaw = -.72; pitch = .62; distance = 48; positionCamera(); }
+
+  let dragging = false, px = 0, py = 0, pinch = 0;
+  viewport.addEventListener("pointerdown", e => { dragging = true; px = e.clientX; py = e.clientY; viewport.setPointerCapture(e.pointerId); });
+  viewport.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    yaw -= (e.clientX - px) * .009;
+    pitch = Math.max(.08, Math.min(1.42, pitch + (e.clientY - py) * .007));
+    px = e.clientX; py = e.clientY; positionCamera();
+  });
+  viewport.addEventListener("pointerup", () => dragging = false);
+  viewport.addEventListener("pointercancel", () => dragging = false);
+  viewport.addEventListener("wheel", e => { e.preventDefault(); distance = Math.max(20, Math.min(78, distance + e.deltaY * .035)); positionCamera(); }, { passive: false });
+  viewport.addEventListener("touchmove", e => {
+    if (e.touches.length !== 2) { pinch = 0; return; }
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if (pinch) distance = Math.max(20, Math.min(78, distance - (d-pinch)*.045));
+    pinch = d; positionCamera();
+  }, { passive: true });
+  viewport.addEventListener("touchend", () => pinch = 0);
+
+  const current = document.querySelector("#modelCurrent");
+  const full = document.querySelector("#modelFull");
+  current.addEventListener("click", () => { modelMode="current"; current.classList.add("active"); full.classList.remove("active"); rebuildModel(); });
+  full.addEventListener("click", () => { modelMode="full"; full.classList.add("active"); current.classList.remove("active"); rebuildModel(); });
+  document.querySelector("#modelReset").addEventListener("click", resetView);
+
+  const resize = () => {
+    const w = viewport.clientWidth, h = viewport.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix();
+  };
+  new ResizeObserver(resize).observe(viewport);
+  resetView(); rebuildModel();
+  renderer.setAnimationLoop(() => renderer.render(scene, camera));
+}
+
+render();
+initModel();
+
+  </script>
 </body>
 </html>
